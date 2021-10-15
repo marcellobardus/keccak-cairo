@@ -4,6 +4,7 @@ from starkware.cairo.common.alloc import alloc
 
 
 func state_xor{bitwise_ptr : BitwiseBuiltin*}(state : felt*, values : felt*) -> (xored_values : felt*):
+    %{ print("[state_xor]: Entering with params state:", ids.state, "values:", ids.values) %}
     alloc_locals
     let (local output : felt*) = alloc()
 

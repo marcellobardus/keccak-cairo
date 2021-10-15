@@ -24,6 +24,7 @@ const KECCAK_STATE_SIZE_FELTS = 25
 # is not sound and a malicious prover may return a wrong result.
 # Note: the interface of this function may change in the future.
 func keccak_f{range_check_ptr, keccak_ptr : felt*}(input : felt*, n_bytes : felt) -> (output : felt*):
+    %{ print("\n[keccak_f]: Entering with params keccak_ptr:", ids.keccak_ptr, "input:", ids.input, "n_bytes:", ids.n_bytes) %}
     let keccak_ptr_start = input
     let output = keccak_ptr + KECCAK_STATE_SIZE_FELTS
     %{
@@ -48,39 +49,35 @@ end
 
 func recursive_keccak{range_check_ptr, keccak_ptr : felt*, bitwise_ptr : BitwiseBuiltin*}(state: felt*, input : felt*, n_bytes : felt) -> (output : felt*):
     alloc_locals
-    %{ print("recursive keccak: Entering with params state: ", ids.state, " input: ", ids.input, " n_bytes: ", ids.n_bytes) %}
-    %{ print("recursive keccak: input: ", memory.get_range(ids.input, int(ids.n_bytes / 8))) %}
+    %{ print("\n[recursive keccak]: Entering with params keccak_ptr:", ids.keccak_ptr, "input:", ids.input, "n_bytes:", ids.n_bytes, "state:", ids.state) %}
+    %{ print("[recursive keccak]: input: ", *list(map(hex, memory.get_range(ids.input, int(ids.n_bytes / 8))))) %}
 
-    let input_cp = input
+    let input_start = input
+    let keccak_ptr_start = keccak_ptr
+
     _keccak_input(input=input, n_bytes=136, n_words=17)
-    %{ print("recursive keccak: KeccakInput") %}
-
-    %{ print("recursive keccak: XOR : StateAddr", ids.state) %}
-    %{ print("recursive keccak: XOR : InputAddr", ids.input) %}
 
     %{ 
         def look_up(index_from, n):
             for index in range(0, n):
                 try:
-                    print("Index: ",index_from + index, " : ", memory.get_range(index_from + index, 1))
+                    print("MEM:\t",index_from + index, "\t:", hex(int(memory.get_range(index_from + index, 1)[0])))
                 except:
-                    print("Index: ", index_from + index, " : ", None)
+                    print("MEM:\t", index_from + index, "\t:    *** EMPTY ***")
 
-        look_up(ids.keccak_ptr, 30)
+        look_up(ids.keccak_ptr_start, 30)
     %}
 
 
     let (xor: felt*) = state_xor(state, input)
-    %{ print("recursive keccak: XOR") %}
 
     let (state_update: felt*) = keccak_f(input=xor, n_bytes=136)
-    %{ print("recursive keccak: KeccakF") %}
 
     local n_bytes_above_zero
     %{ ids.n_bytes_above_zero = int(ids.n_bytes > 0) %}
 
     if n_bytes_above_zero != 0:
-        let (state_update: felt*) = recursive_keccak(state=state_update, input=input_cp+17, n_bytes=n_bytes-136)
+        let (state_update: felt*) = recursive_keccak(state=state_update, input=input_start+17, n_bytes=n_bytes-136)
         return (state_update)
     else:
         return (state_update)
@@ -88,12 +85,17 @@ func recursive_keccak{range_check_ptr, keccak_ptr : felt*, bitwise_ptr : Bitwise
 end
 
 func keccak{range_check_ptr, keccak_ptr : felt*, bitwise_ptr : BitwiseBuiltin*}(input : felt*, n_bytes : felt) -> (output : felt*):
+    %{ print("\n[keccak]: Entering with params keccak_ptr:", ids.keccak_ptr, "input:", ids.input, "n_bytes:", ids.n_bytes) %}
+
+    let keccak_ptr_start = keccak_ptr
+
     alloc_locals
     local n_bytes_modulo_chunk_size
     %{ ids.n_bytes_modulo_chunk_size = ids.n_bytes * 8 % 1088 %}
     assert n_bytes_modulo_chunk_size = 0
     
-    let state = keccak_ptr
+    # let state = keccak_ptr
+    let (local state : felt*) = alloc()
 
     assert state[0] = 0
     assert state[1] = 0
@@ -121,7 +123,17 @@ func keccak{range_check_ptr, keccak_ptr : felt*, bitwise_ptr : BitwiseBuiltin*}(
     assert state[23] = 0
     assert state[24] = 0
 
-    let keccak_ptr = keccak_ptr + 25
+    %{ 
+        print("[keccak] Initialized state:")
+        def look_up(index_from, n):
+            for index in range(0, n):
+                try:
+                    print("MEM:\t",index_from + index, "\t:", hex(int(memory.get_range(index_from + index, 1)[0])))
+                except:
+                    print("MEM:\t", index_from + index, "\t:    *** EMPTY ***")
+
+        look_up(ids.state, 30)
+    %}
 
     let (output: felt*) = recursive_keccak(state=state, input=input, n_bytes=n_bytes)
     return (output)
@@ -129,13 +141,9 @@ end
 
 func _keccak_input{range_check_ptr, keccak_ptr : felt*}(
         input : felt*, n_bytes : felt, n_words : felt):
+    %{ print("[_keccak_input]: Entering with params keccak_ptr:", ids.keccak_ptr, "input:", ids.input, "n_bytes:", ids.n_bytes) %}
     alloc_locals
     
-    %{
-        print("NBytes: ", ids.n_bytes)
-        print("InputId: ", ids.input)
-    %}
-
     local n_bytes_above_0
     %{ ids.n_bytes_above_0 = int(ids.n_bytes > 0) %}
 

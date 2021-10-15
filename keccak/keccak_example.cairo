@@ -1,6 +1,6 @@
 %builtins output range_check bitwise
 
-from keccak import finalize_keccak, keccak
+from keccak import keccak
 from starkware.cairo.common.alloc import alloc
 from starkware.cairo.common.cairo_builtins import BitwiseBuiltin
 
@@ -48,12 +48,11 @@ func main{output_ptr : felt*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*}():
     assert input[30] = %[ int.from_bytes(b'emlhjdhg', 'little') %]
     assert input[31] = %[ int.from_bytes(b'zhamobne', 'little') %]
     assert input[32] = %[ int.from_bytes(b'sgomqsy1', 'little') %]
-    assert input[33] = %[ int.from_bytes(b'4444444\x81', 'little') %]
 
-    let (output) = keccak{keccak_ptr=keccak_ptr}(input, 272)
+    let (output) = keccak{keccak_ptr=keccak_ptr}(input, 264)
     %{
         from web3 import Web3
-        input_str = "11111111gabzsvmfeixnkgckllvydhrawqlxblbwaiesgdyaonwcttdjelybogdyruqjjecaxyzkbtgxmflkrzihjrmorulgffzqceebemlhjdhgzhamobnesgomqsy12222222233333333gabzsvmfeixnkgckllvydhrawqlxblbwaiesgdyaonwcttdjelybogdyruqjjecaxyzkbtgxmflkrzihjrmorulgffzqceebemlhjdhgzhamobnesgomqsy14444444"
+        input_str = "11111111gabzsvmfeixnkgckllvydhrawqlxblbwaiesgdyaonwcttdjelybogdyruqjjecaxyzkbtgxmflkrzihjrmorulgffzqceebemlhjdhgzhamobnesgomqsy12222222233333333gabzsvmfeixnkgckllvydhrawqlxblbwaiesgdyaonwcttdjelybogdyruqjjecaxyzkbtgxmflkrzihjrmorulgffzqceebemlhjdhgzhamobnesgomqsy1"
         print("Input bytes size: ", len(input_str.encode('utf-8')))
         output = ''.join(v.to_bytes(8, 'little').hex() for v in memory.get_range(ids.output, 4))
         print(f'Keccak of "{input_str}": {output}')
@@ -62,13 +61,13 @@ func main{output_ptr : felt*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*}():
         print("Cairo output: ", '0x' + output)
         assert '0x' + output == web3_result
     %}
-    assert output_ptr[0] = output[0]
-    assert output_ptr[1] = output[1]
-    assert output_ptr[2] = output[2]
-    assert output_ptr[3] = output[3]
-    let output_ptr = output_ptr + 4
+    # assert output_ptr[0] = output[0]
+    # assert output_ptr[1] = output[1]
+    # assert output_ptr[2] = output[2]
+    # assert output_ptr[3] = output[3]
+    # let output_ptr = output_ptr + 4
 
-    finalize_keccak(keccak_ptr_start=keccak_ptr_start, keccak_ptr_end=keccak_ptr)
+    # finalize_keccak(keccak_ptr_start=keccak_ptr_start, keccak_ptr_end=keccak_ptr)
 
     %{
         # Print the number of used bitwise builtin instances.

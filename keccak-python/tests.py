@@ -60,9 +60,9 @@ def test_long():
     assert h == expect
 
 def test_keccak256():
-    pt = hexlify("12345678gabzsvmfeixnkgckllvydhrawqlxblbwaiesgdyaonwcttdjelybogdyruqjjecaxyzkbtgxmflkrzihjrmorulgffzqceebemlhjdhgzhamobnesgomqsy12345678").decode('hex')
+    # pt = hexlify("12345678gabzsvmfeixnkgckllvydhrawqlxblbwaiesgdyaonwcttdjelybogdyruqjjecaxyzkbtgxmflkrzihjrmorulgffzqceebemlhjdhgzhamobnesgomqsy123456789").decode('hex')
+    pt = hexlify("").decode('hex')
     h = Keccak256(pt)
-    h.hexdigest()
     print(h.hexdigest())
 
 

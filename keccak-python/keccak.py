@@ -47,7 +47,11 @@ def multirate_padding(used_bytes, align_bytes):
     """
     The Keccak padding function.
     """
+    # used_bytes = len(self.buffer) = 136
+    # align_bytes = state.bitrate_bytes = 136
+    print("[MULTIRATE_PADDING]: align_bytes:", align_bytes, " used_bytes:", used_bytes)
     padlen = align_bytes - used_bytes
+    print("[MULTIRATE_PADDING]: padlen:", padlen)
     if padlen == 0:
         padlen = align_bytes
     # note: padding done in 'internal bit ordering', wherein LSB is leftmost
@@ -236,7 +240,13 @@ class KeccakSponge(object):
         
     def absorb_block(self, bb):
         assert len(bb) == self.state.bitrate_bytes
+        print("\nABSORBING...")
+        print("Current state:")
+        print(self.state)
+        print("What we absorb:")
+        print(bb)
         self.state.absorb(bb)
+        print("State after absorbtion:")
         print(self.state)
         self.permfn(self.state)
     

@@ -14,7 +14,7 @@ func main{output_ptr : felt*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*}():
     #   x = "uzlbpiahgabzsvmfeixnkgckllvydhrawqlxblbwaiesgdyaonwcttdjelybogdyruqjjeca" +
     #       "xyzkbtgxmflkrzihjrmorulgffzqceebemlhjdhgzhamobnesgomqsy"
     let (local input : felt*) = alloc()
-    assert input[0] = %[ int.from_bytes(b'\x11\x22\x00\x00\x00\x00\x33\x44', 'little') %]
+    assert input[0] = %[ int.from_bytes(b'11111111', 'little') %]
     assert input[1] = %[ int.from_bytes(b'gabzsvmf', 'little') %]
     assert input[2] = %[ int.from_bytes(b'eixnkgck', 'little') %]
     assert input[3] = %[ int.from_bytes(b'llvydhra', 'little') %]
@@ -30,9 +30,9 @@ func main{output_ptr : felt*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*}():
     assert input[13] = %[ int.from_bytes(b'emlhjdhg', 'little') %]
     assert input[14] = %[ int.from_bytes(b'zhamobne', 'little') %]
     assert input[15] = %[ int.from_bytes(b'sgomqsy1', 'little') %]
-    assert input[16] = %[ int.from_bytes(b'\x55\x66\x00\x00\x00\x00\x77\x88', 'little') %]
+    assert input[16] = %[ int.from_bytes(b'22222222', 'little') %]
 
-    assert input[17] = %[ int.from_bytes(b'\xAA\xBB\x00\x00\x00\x00\xCC\xDD', 'little') %]
+    assert input[17] = %[ int.from_bytes(b'33333333', 'little') %]
     assert input[18] = %[ int.from_bytes(b'gabzsvmf', 'little') %]
     assert input[19] = %[ int.from_bytes(b'eixnkgck', 'little') %]
     assert input[20] = %[ int.from_bytes(b'llvydhra', 'little') %]
@@ -48,12 +48,12 @@ func main{output_ptr : felt*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*}():
     assert input[30] = %[ int.from_bytes(b'emlhjdhg', 'little') %]
     assert input[31] = %[ int.from_bytes(b'zhamobne', 'little') %]
     assert input[32] = %[ int.from_bytes(b'sgomqsy1', 'little') %]
-    assert input[33] = %[ int.from_bytes(b'\xEE\xFF\x00\x00\x00\xF9\xE9\x81', 'little') %]
+    assert input[33] = %[ int.from_bytes(b'4444444\x81', 'little') %]
 
     let (output) = keccak{keccak_ptr=keccak_ptr}(input, 272)
     %{
         from web3 import Web3
-        input_str = "30345678gabzsvmfeixnkgckllvydhrawqlxblbwaiesgdyaonwcttdjelybogdyruqjjecaxyzkbtgxmflkrzihjrmorulgffzqceebemlhjdhgzhamobnesgomqsy12345678930345678gabzsvmfeixnkgckllvydhrawqlxblbwaiesgdyaonwcttdjelybogdyruqjjecaxyzkbtgxmflkrzihjrmorulgffzqceebemlhjdhgzhamobnesgomqsy12345678"
+        input_str = "11111111gabzsvmfeixnkgckllvydhrawqlxblbwaiesgdyaonwcttdjelybogdyruqjjecaxyzkbtgxmflkrzihjrmorulgffzqceebemlhjdhgzhamobnesgomqsy12222222233333333gabzsvmfeixnkgckllvydhrawqlxblbwaiesgdyaonwcttdjelybogdyruqjjecaxyzkbtgxmflkrzihjrmorulgffzqceebemlhjdhgzhamobnesgomqsy14444444"
         print("Input bytes size: ", len(input_str.encode('utf-8')))
         output = ''.join(v.to_bytes(8, 'little').hex() for v in memory.get_range(ids.output, 4))
         print(f'Keccak of "{input_str}": {output}')

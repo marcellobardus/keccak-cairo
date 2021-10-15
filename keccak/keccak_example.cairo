@@ -1,6 +1,6 @@
 %builtins output range_check bitwise
 
-from keccak import keccak
+from keccak import keccak256
 from starkware.cairo.common.alloc import alloc
 from starkware.cairo.common.cairo_builtins import BitwiseBuiltin
 
@@ -49,7 +49,7 @@ func main{output_ptr : felt*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*}():
     assert input[31] = %[ int.from_bytes(b'zhamobne', 'little') %]
     assert input[32] = %[ int.from_bytes(b'sgomqsy1', 'little') %]
 
-    let (output) = keccak{keccak_ptr=keccak_ptr}(input, 264)
+    let (output) = keccak256{keccak_ptr=keccak_ptr}(input, 264)
     %{
         from web3 import Web3
         input_str = "11111111gabzsvmfeixnkgckllvydhrawqlxblbwaiesgdyaonwcttdjelybogdyruqjjecaxyzkbtgxmflkrzihjrmorulgffzqceebemlhjdhgzhamobnesgomqsy12222222233333333gabzsvmfeixnkgckllvydhrawqlxblbwaiesgdyaonwcttdjelybogdyruqjjecaxyzkbtgxmflkrzihjrmorulgffzqceebemlhjdhgzhamobnesgomqsy1"

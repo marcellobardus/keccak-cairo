@@ -7,6 +7,8 @@ from starkware.cairo.common.memset import memset
 from starkware.cairo.common.pow import pow
 
 # Runs keccak_f permutations on the given input
+# Uses packed_keccak_func from Starkware (in native Cairo)
+# Then 8 right bytes of each felt are extracted with a mask (everything to the left is considered garbage)
 func keccak_f{range_check_ptr, keccak_ptr : felt*, bitwise_ptr : BitwiseBuiltin*}(input : felt*) -> (output : felt*):
     let (garbaged_output) = packed_keccak_func(input)
     let (clean_output) = mask_garbage(garbaged_output)
@@ -14,6 +16,9 @@ func keccak_f{range_check_ptr, keccak_ptr : felt*, bitwise_ptr : BitwiseBuiltin*
 end
 
 # Loads next keccak256 size block of words of the given inputs
+#
+# The input here is considered to be 136 bytes, so we can just copy it directly
+# The rest is filled with zero's to form a 200byte state
 func load_full_block{range_check_ptr, keccak_ptr_start: felt*, keccak_ptr : felt*}(
         input : felt*) -> (formatted_input : felt*):
     alloc_locals
@@ -49,6 +54,13 @@ func load_full_block{range_check_ptr, keccak_ptr_start: felt*, keccak_ptr : felt
 end
 
 # Loads next keccak256 size block of words of the given inputs and applies additional padding
+#
+# In case the input is less than 136 bytes - padding rules must apply:
+#   - input = 135bytes - 0x81 is added as a 136th byte (lsb)
+#   - input < 135bytes - 0x80 is added as a 136th byte and 0x01 is added after the end of data
+#   - if the input is empty - 0x01 is added at the beginning of the block, and 0x80 at 136th position
+#
+#   the rest is filled with zeroes to form a 200byte state
 func load_block_with_padding{range_check_ptr, keccak_ptr_start: felt*, keccak_ptr : felt*}(
         input : felt*, n_bytes : felt, n_words : felt) -> (formatted_input : felt*):
     alloc_locals
@@ -96,18 +108,29 @@ func load_block_with_padding{range_check_ptr, keccak_ptr_start: felt*, keccak_pt
     end
 end
 
-
+# Recursively runs the keccak256 algorithm, processing the imput block by block
+# Block size is fixed as 25 words (1600 bits),
+# in which 17 words (1088 bits) represent data
+#
+# Last block of data is being padded
+#
+# Each iteration consists of loading/formatting the data for the block
+# xorring the block with previous state
+# and performind a keccak permutation on that xor
 func recursive_keccak{range_check_ptr, keccak_ptr : felt*, bitwise_ptr : BitwiseBuiltin*}(state: felt*, input : felt*, n_bytes : felt) -> (output : felt*):
     alloc_locals
     local n_bytes_in_current_block
     %{ ids.n_bytes_in_current_block = min(int(ids.n_bytes), 136) %}
 
+    # If current input block is full (136 bytes, 1088 bits) - we use an optimized loader 
     if n_bytes_in_current_block == 136:
         let (formatted_input: felt *) = load_full_block{keccak_ptr_start=keccak_ptr}(input=input)
         let (xor: felt*) = state_xor(state, formatted_input)
         let (keccak_f_ptr: felt*) = keccak_f(input=xor)
         let (state_update: felt*) = recursive_keccak(state=keccak_f_ptr, input=input+17, n_bytes=n_bytes-n_bytes_in_current_block)
         return (state_update)
+    # For any block that is less than 136 bytes - the data is padded by keccak256 standard.
+    # In case all previous blocks were perfectly 136 bytes - the last iteration should be perfomed on an empty block, also padded
     else:
         let (formatted_input: felt *) = load_block_with_padding{keccak_ptr_start=keccak_ptr}(input=input, n_bytes=n_bytes_in_current_block, n_words=17)
         let (xor: felt*) = state_xor(state, formatted_input)
@@ -117,8 +140,8 @@ func recursive_keccak{range_check_ptr, keccak_ptr : felt*, bitwise_ptr : Bitwise
 end
 
 
-# Computes the keccak of 'input'. Inputs of any size are supported
-# To use this function, split the input into (up to) 16 words of 64 bits (little endian).
+# Computes the keccak256 of 'input'. Inputs of any size are supported.
+# To use this function, split the input into words of 64 bits (little endian).
 # For example, to compute keccak('Hello world!'), use:
 #   input = [8031924123371070792, 560229490]
 # where:
@@ -128,11 +151,11 @@ end
 # output is an array of 4 64-bit words (little endian).
 #
 #
-func keccak{range_check_ptr, keccak_ptr : felt*, bitwise_ptr : BitwiseBuiltin*}(input : felt*, n_bytes : felt) -> (output : felt*):
+func keccak256{range_check_ptr, keccak_ptr : felt*, bitwise_ptr : BitwiseBuiltin*}(input : felt*, n_bytes : felt) -> (output : felt*):
     let keccak_ptr_start = keccak_ptr
     alloc_locals
 
-    # Allocates an empty felt array which will be feed with an empty state
+    # Allocates an empty felt array which will represent initial zeroed state
     let (local state : felt*) = alloc()
 
     # Fill state with 25 zeros

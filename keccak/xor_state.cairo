@@ -2,7 +2,7 @@ from starkware.cairo.common.cairo_builtins import BitwiseBuiltin
 from starkware.cairo.common.bitwise import bitwise_xor
 from starkware.cairo.common.alloc import alloc
 
-
+# XORs the state with values
 func state_xor{bitwise_ptr : BitwiseBuiltin*}(state : felt*, values : felt*) -> (xored_values : felt*):
     %{ print("[state_xor]: Entering with params state:", ids.state, "values:", ids.values) %}
     alloc_locals
@@ -90,6 +90,8 @@ func state_xor{bitwise_ptr : BitwiseBuiltin*}(state : felt*, values : felt*) -> 
     return (output)
 end
 
+# Masks the 8 rightmost bytes on each felt
+# Everything to the left is considered garbage
 func mask_garbage{bitwise_ptr : BitwiseBuiltin*}(input : felt*) -> (output : felt*):
     %{ print("[mask_garbage]: Entering with params input:", ids.input) %}
     alloc_locals

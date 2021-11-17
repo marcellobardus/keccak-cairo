@@ -48,7 +48,7 @@ func main{output_ptr : felt*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*}():
     assert input[30] = %[ int.from_bytes(b'emlhjdhg', 'little') %]
     assert input[31] = %[ int.from_bytes(b'zhamobne', 'little') %]
     assert input[32] = %[ int.from_bytes(b'sgomqsy1', 'little') %]
-
+    
     let (output) = keccak256{keccak_ptr=keccak_ptr}(input, 264)
     %{
         from web3 import Web3

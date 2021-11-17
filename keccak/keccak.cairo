@@ -3,6 +3,7 @@ from xor_state import state_xor, mask_garbage
 from starkware.cairo.common.alloc import alloc
 from starkware.cairo.common.cairo_builtins import BitwiseBuiltin
 from starkware.cairo.common.math import assert_nn_le, unsigned_div_rem
+from starkware.cairo.common.math_cmp import is_le
 from starkware.cairo.common.memset import memset
 from starkware.cairo.common.pow import pow
 
@@ -12,6 +13,9 @@ from starkware.cairo.common.pow import pow
 func keccak_f{range_check_ptr, keccak_ptr : felt*, bitwise_ptr : BitwiseBuiltin*}(input : felt*) -> (output : felt*):
     let (garbaged_output) = packed_keccak_func(input)
     let (clean_output) = mask_garbage(garbaged_output)
+    %{
+        print("clean_output: ", ids.clean_output)
+    %}
     return (clean_output)
 end
 
@@ -73,42 +77,78 @@ func load_block_with_padding{range_check_ptr, keccak_ptr_start: felt*, keccak_pt
         input : felt*, n_bytes : felt, n_word : felt) -> (formatted_input : felt*):
     alloc_locals
 
-    local is_full_word
-    %{ ids.is_full_word = int(ids.n_bytes >= 8) %}
+    %{
+        print("load_block_with_padding()")
+    %}
+
+    let (is_full_word, _) = unsigned_div_rem(n_bytes, 8)
 
     # If the current word is full (8 bytes, 64 bits) - we just copy it to the state
-    if is_full_word == 1:
+    if is_full_word != 0:
+        %{
+            print("load_block_with_padding(): not a full word")
+        %}
         assert keccak_ptr[0] = input[0]
         let keccak_ptr = keccak_ptr + 1
+        %{
+            print("re:load_block_with_padding(): ids.n_word: ", ids.n_word)
+        %}
         load_block_with_padding(input=input + 1, n_bytes=n_bytes - 8, n_word=n_word - 1)
         return (keccak_ptr_start)
     # Else, if the word is less than 8 bytes - we consider to add padding
     else:
         local final_padding
 
-        if n_word == 1: # If it's the last word
+        %{
+            print("load_block_with_padding(): a full word")
+        %}
+
+        # If it is the last word
+        if n_word == 1:
+            %{
+                print("load_block_with_padding(): final_padding: ", ids.final_padding)
+            %}
             assert final_padding = 2 * 2 ** 62 # Add a padding 0x80 00 00 00 00 00 00 00
         else:
             assert final_padding = 0 # No 0x80 padding will be added
         end
+
+        %{
+            print("load_block_with_padding(): final_padding: ", ids.final_padding)
+        %}
         
         assert_nn_le(n_bytes, 7)
         let (padding) = pow(256, n_bytes) # This adds a 0x01 based on how many input bytes are left, straight to the left of them
         local range_check_ptr = range_check_ptr
 
-        if n_bytes == 0: # If there are no bytes, then we just add the 0x01 padding to the right (and 0x80 to the left)
+        %{
+            print("load_block_with_padding(): padding: ", ids.padding)
+        %}
+
+        # If there are no bytes, then we just add the 0x01 padding to the right (and 0x80 to the left)
+        if n_bytes == 0:
             if n_word != 0:
                 assert keccak_ptr[0] = 1 + final_padding
             end
-        else: # If there is some input data left in current word, we add 0x01 and 0x80 paddings to the left of the data
+        # If there is some input data left in current word, we add 0x01 and 0x80 paddings to the left of the data
+        else:
             assert keccak_ptr[0] = input[0] + padding + final_padding
         end
 
-        if n_word == 1: # If the input data finished at the last word - we add 8 words of capacity zeroes after it (64 bits)
+        %{
+            print("load_block_with_padding(): n_word: ", ids.n_word)
+        %}
+
+        # If the input data finished at the last word - we add 8 words of capacity zeroes after it (64 bits)
+        if n_word == 1:
             memset(dst=keccak_ptr + 1, value=0, n=n_word - 1 + 8)
             let keccak_ptr = keccak_ptr + n_word + 8
+            %{
+                print("load_block_with_padding(): n_word=1, keccak_ptr: ", ids.keccak_ptr)
+            %}
             return (keccak_ptr_start)
-        else: # If the input data finished earlier than the 17th word:
+        # If the input data finished earlier than the 17th word:
+        else:
             # Fill with zeroes until the last 17th word
             memset(dst=keccak_ptr + 1, value=0, n=n_word - 2)
             let keccak_ptr = keccak_ptr + n_word - 1
@@ -116,6 +156,9 @@ func load_block_with_padding{range_check_ptr, keccak_ptr_start: felt*, keccak_pt
             assert keccak_ptr[0] = 2 * 2 ** 62
             # Fill the rest 8 words of capacity section with zeroes
             memset(dst=keccak_ptr + 1, value=0, n=8)
+            %{
+                print("load_block_with_padding(): n_word!=1, keccak_ptr: ", ids.keccak_ptr)
+            %}
             return (keccak_ptr_start)
         end
     end
@@ -131,14 +174,36 @@ end
 # xorring the block with previous state
 # and performind a keccak permutation on that xor
 func recursive_keccak{range_check_ptr, keccak_ptr : felt*, bitwise_ptr : BitwiseBuiltin*}(state: felt*, input : felt*, n_bytes : felt) -> (output : felt*):
+    %{
+        print("Running recursive keccak")
+    %}
     alloc_locals
+    let (is_n_bytes_above_136) = is_le(136, n_bytes)
     local n_bytes_in_current_block
-    %{ ids.n_bytes_in_current_block = min(int(ids.n_bytes), 136) %}
-
+    if is_n_bytes_above_136 == 0:
+        assert n_bytes_in_current_block = 136
+    else:
+        assert n_bytes_in_current_block = n_bytes
+    end
+    
     # If current input block is full (136 bytes, 1088 bits) - we use an optimized loader 
     if n_bytes_in_current_block == 136:
+        
         let (formatted_input: felt *) = load_full_block{keccak_ptr_start=keccak_ptr}(input=input)
         let (xor: felt*) = state_xor(state, formatted_input)
+
+        %{ 
+            print("\t[recursive_keccak] load_full_block filled in the input to formatted_input:")
+            def look_up(name, index_from, n):
+                for index in range(0, n):
+                    try:
+                        print(name, ":\t",index_from + index, "\t:", hex(int(memory.get_range(index_from + index, 1)[0])))
+                    except:
+                        print(name, ":\t", index_from + index, "\t:    *** EMPTY ***")
+
+            look_up("FORMATTED_INPUT", ids.formatted_input, 30)
+        %}
+
         let (keccak_f_ptr: felt*) = keccak_f(input=xor)
         let (state_update: felt*) = recursive_keccak(state=keccak_f_ptr, input=input+17, n_bytes=n_bytes-n_bytes_in_current_block)
         return (state_update)
@@ -146,6 +211,17 @@ func recursive_keccak{range_check_ptr, keccak_ptr : felt*, bitwise_ptr : Bitwise
     # In case all previous blocks were perfectly 136 bytes - the last iteration should be perfomed on an empty block, also padded
     else:
         let (formatted_input: felt *) = load_block_with_padding{keccak_ptr_start=keccak_ptr}(input=input, n_bytes=n_bytes_in_current_block, n_word=17)
+        %{ 
+            print("\t[recursive_keccak] load_full_block filled in the input to formatted_input:")
+            def look_up(name, index_from, n):
+                for index in range(0, n):
+                    try:
+                        print(name, ":\t",index_from + index, "\t:", hex(int(memory.get_range(index_from + index, 1)[0])))
+                    except:
+                        print(name, ":\t", index_from + index, "\t:    *** EMPTY ***")
+
+            look_up("FORMATTED_INPUT", ids.formatted_input, 30)
+        %}
         let (xor: felt*) = state_xor(state, formatted_input)
         let (keccak_f_ptr: felt*) = keccak_f(input=xor)
         return (keccak_f_ptr)
@@ -197,6 +273,10 @@ func keccak256{range_check_ptr, keccak_ptr : felt*, bitwise_ptr : BitwiseBuiltin
     assert state[22] = 0
     assert state[23] = 0
     assert state[24] = 0
+
+    %{
+        print("filled state")
+    %}
 
     # Run keccak recursively
     let (output: felt*) = recursive_keccak(state=state, input=input, n_bytes=n_bytes)

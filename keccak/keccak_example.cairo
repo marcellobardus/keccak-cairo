@@ -32,24 +32,24 @@ func main{output_ptr : felt*, range_check_ptr, bitwise_ptr : BitwiseBuiltin*}():
     assert input[15] = %[ int.from_bytes(b'sgomqsy1', 'little') %]
     assert input[16] = %[ int.from_bytes(b'22222222', 'little') %]
 
-    assert input[17] = %[ int.from_bytes(b'33333333', 'little') %]
-    assert input[18] = %[ int.from_bytes(b'gabzsvmf', 'little') %]
-    assert input[19] = %[ int.from_bytes(b'eixnkgck', 'little') %]
-    assert input[20] = %[ int.from_bytes(b'llvydhra', 'little') %]
-    assert input[21] = %[ int.from_bytes(b'wqlxblbw', 'little') %]
-    assert input[22] = %[ int.from_bytes(b'aiesgdya', 'little') %]
-    assert input[23] = %[ int.from_bytes(b'onwcttdj', 'little') %]
-    assert input[24] = %[ int.from_bytes(b'elybogdy', 'little') %]
-    assert input[25] = %[ int.from_bytes(b'ruqjjeca', 'little') %]
-    assert input[26] = %[ int.from_bytes(b'xyzkbtgx', 'little') %]
-    assert input[27] = %[ int.from_bytes(b'mflkrzih', 'little') %]
-    assert input[28] = %[ int.from_bytes(b'jrmorulg', 'little') %]
-    assert input[29] = %[ int.from_bytes(b'ffzqceeb', 'little') %]
-    assert input[30] = %[ int.from_bytes(b'emlhjdhg', 'little') %]
-    assert input[31] = %[ int.from_bytes(b'zhamobne', 'little') %]
-    assert input[32] = %[ int.from_bytes(b'sgomqsy1', 'little') %]
+    # assert input[17] = %[ int.from_bytes(b'33333333', 'little') %]
+    # assert input[18] = %[ int.from_bytes(b'gabzsvmf', 'little') %]
+    # assert input[19] = %[ int.from_bytes(b'eixnkgck', 'little') %]
+    # assert input[20] = %[ int.from_bytes(b'llvydhra', 'little') %]
+    # assert input[21] = %[ int.from_bytes(b'wqlxblbw', 'little') %]
+    # assert input[22] = %[ int.from_bytes(b'aiesgdya', 'little') %]
+    # assert input[23] = %[ int.from_bytes(b'onwcttdj', 'little') %]
+    # assert input[24] = %[ int.from_bytes(b'elybogdy', 'little') %]
+    # assert input[25] = %[ int.from_bytes(b'ruqjjeca', 'little') %]
+    # assert input[26] = %[ int.from_bytes(b'xyzkbtgx', 'little') %]
+    # assert input[27] = %[ int.from_bytes(b'mflkrzih', 'little') %]
+    # assert input[28] = %[ int.from_bytes(b'jrmorulg', 'little') %]
+    # assert input[29] = %[ int.from_bytes(b'ffzqceeb', 'little') %]
+    # assert input[30] = %[ int.from_bytes(b'emlhjdhg', 'little') %]
+    # assert input[31] = %[ int.from_bytes(b'zhamobne', 'little') %]
+    # assert input[32] = %[ int.from_bytes(b'sgomqsy1', 'little') %]
     
-    let (output) = keccak256{keccak_ptr=keccak_ptr}(input, 264)
+    let (output) = keccak256{keccak_ptr=keccak_ptr}(input, 136)
     %{
         from web3 import Web3
         input_str = "11111111gabzsvmfeixnkgckllvydhrawqlxblbwaiesgdyaonwcttdjelybogdyruqjjecaxyzkbtgxmflkrzihjrmorulgffzqceebemlhjdhgzhamobnesgomqsy12222222233333333gabzsvmfeixnkgckllvydhrawqlxblbwaiesgdyaonwcttdjelybogdyruqjjecaxyzkbtgxmflkrzihjrmorulgffzqceebemlhjdhgzhamobnesgomqsy1"
